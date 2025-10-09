@@ -1,55 +1,73 @@
 document.addEventListener('DOMContentLoaded', () => {
-    // ---- ESTRUTURA DE DADOS INICIAL ---- //
+    // ---- ESTRUTURA DE DADOS ---- //
     let workspace = {
         boards: [
             {
                 id: 2025,
-                name: "Reposições 2025",
+                name: "2025",
                 lists: [
-                    { id: 1, title: "Solicitações Pendentes", cards: [
-                        { id: 101, patientName: "João da Silva", originalProfessional: "Dr. Ana", originalDate: "2025-10-15", sessionType: "Terapia Ocupacional", totalDuration: 50, notes: "Paciente cancelou por motivo de viagem.", completedFractions: [] },
-                        { id: 102, patientName: "Maria Oliveira", originalProfessional: "Dra. Carla", originalDate: "2025-10-12", sessionType: "Fonoaudiologia", totalDuration: 50, notes: "Aguardando horário vago.", completedFractions: [{ date: "2025-10-13", duration: 10, professional: "Dra. Carla" }] }
-                    ]},
-                    { id: 2, title: "Concluídas", cards: [] }
+                    { 
+                        id: 1, 
+                        title: "Pacientes com Pendências", 
+                        patients: [
+                            { 
+                                id: 101, 
+                                name: "João da Silva", 
+                                contact: "(11) 98765-4321",
+                                mainProfessional: "Dr. Ana",
+                                replacements: [
+                                    { id: 1001, originalProfessional: "Dr. Ana", originalDate: "2025-10-15", totalDuration: 50, notes: "Viagem.", completedFractions: [] },
+                                    { id: 1002, originalProfessional: "Dra. Carla", originalDate: "2025-10-12", totalDuration: 50, notes: "Aguardando horário.", completedFractions: [{ date: "2025-10-13", duration: 10, professional: "Dra. Carla" }] }
+                                ]
+                            }
+                        ]
+                    },
+                    { id: 2, title: "Pacientes sem Pendências", patients: [] }
                 ]
             },
             {
                 id: 2024,
-                name: "Reposições 2024",
+                name: "2024",
                 lists: [
-                    { id: 10, title: "Solicitações", cards: [
-                         { id: 201, patientName: "Carlos Andrade", originalProfessional: "Dr. Roberto", originalDate: "2024-12-20", sessionType: "Psicologia", totalDuration: 60, notes: "Finalizado.", completedFractions: [{ date: "2024-12-22", duration: 60, professional: "Dr. Roberto" }] }
-                    ]},
-                    { id: 11, title: "Finalizadas", cards: [] }
+                    { id: 10, title: "Solicitações", patients: [] },
+                    { id: 11, title: "Finalizadas", patients: [] }
                 ]
             }
         ]
     };
 
     // ---- ESTADO DA APLICAÇÃO ---- //
-    let currentBoardId = null;
-    let selectedCardId = null;
-    let currentListIdForNewCard = null;
+    let currentYear = null;
+    let selectedPatientId = null;
+    let selectedReplacementId = null;
+    let currentListIdForNewPatient = null;
+    let editingPatientId = null;
 
     // ---- ELEMENTOS DA DOM ---- //
     const screens = document.querySelectorAll('.screen');
     const loginForm = document.getElementById('login-form');
     const logoutBtn = document.getElementById('logout-btn');
-    const boardsContainer = document.getElementById('boards-container');
-    const addBoardBtn = document.getElementById('add-board-btn');
-    const boardTitle = document.getElementById('board-title');
     const boardContent = document.getElementById('board-content');
     const searchBar = document.getElementById('search-bar');
-    const backToWorkspaceBtn = document.getElementById('back-to-workspace-btn');
+    const yearSelectorBtn = document.getElementById('year-selector-btn');
+    const yearSelectorMenu = document.getElementById('year-selector-menu');
     
-    // Modals e Formulários
-    const createCardModal = new bootstrap.Modal(document.getElementById('createCardModal'));
-    const cardDetailsModal = new bootstrap.Modal(document.getElementById('cardDetailsModal'));
-    const createCardForm = document.getElementById('createCardForm');
-    const cardDetailsTitle = document.getElementById('cardDetailsModalTitle');
-    const cardDetailsBody = document.getElementById('cardDetailsModalBody');
-    const deleteCardBtn = document.getElementById('deleteCardBtn');
-    const addFractionForm = document.getElementById('addFractionForm');
+    const createPatientModal = new bootstrap.Modal(document.getElementById('createPatientModal'));
+    const patientDetailsModal = new bootstrap.Modal(document.getElementById('patientDetailsModal'));
+    const addReplacementModal = new bootstrap.Modal(document.getElementById('addReplacementModal'));
+    const addYearModal = new bootstrap.Modal(document.getElementById('addYearModal'));
+    const registerFractionModal = new bootstrap.Modal(document.getElementById('registerFractionModal'));
+    
+    const createPatientForm = document.getElementById('createPatientForm');
+    const createPatientModalTitle = document.getElementById('createPatientModalTitle');
+    const createPatientSubmitBtn = document.getElementById('createPatientSubmitBtn');
+    const patientNameTitle = document.getElementById('patientNameTitle');
+    const deletePatientBtn = document.getElementById('deletePatientBtn');
+    const showAddReplacementModalBtn = document.getElementById('showAddReplacementModalBtn');
+    const addReplacementForm = document.getElementById('addReplacementForm');
+    const addYearForm = document.getElementById('addYearForm');
+    const registerFractionForm = document.getElementById('registerFractionForm');
+    const patientDetailsModalElement = document.getElementById('patientDetailsModal');
 
     // ---- FUNÇÕES PRINCIPAIS ---- //
 
@@ -58,323 +76,332 @@ document.addEventListener('DOMContentLoaded', () => {
         document.body.classList.toggle('login-view', screenId === 'login-screen');
     };
 
-    const renderWorkspace = () => {
-        boardsContainer.innerHTML = '';
-        workspace.boards.forEach(board => {
-            const boardCard = document.createElement('div');
-            boardCard.className = 'col-md-4 col-lg-3 mb-3';
-            boardCard.innerHTML = `
-                <div class="card bg-dark text-white board-card h-100" data-board-id="${board.id}">
-                    <div class="card-body">
-                        <h5 class="card-title">${board.name}</h5>
-                        <p class="card-text text-body-secondary">${board.lists.length} colunas</p>
-                    </div>
-                </div>
-            `;
-            boardsContainer.appendChild(boardCard);
+    const initializeApp = () => {
+        const year = new Date().getFullYear();
+        if (!workspace.boards.find(b => b.id === year)) {
+            workspace.boards.push({ id: year, name: String(year), lists: [
+                { id: Date.now() + 1, title: "Pacientes com Pendências", patients: [] },
+                { id: Date.now() + 2, title: "Pacientes sem Pendências", patients: [] }
+            ]});
+        }
+        currentYear = year;
+        renderYearSelector();
+        renderBoard();
+        showScreen('board-screen');
+    };
+
+    const renderYearSelector = () => {
+        yearSelectorMenu.innerHTML = '';
+        yearSelectorBtn.textContent = currentYear;
+        const sortedBoards = [...workspace.boards].sort((a, b) => b.id - a.id);
+        sortedBoards.forEach(board => {
+            const item = document.createElement('li');
+            item.innerHTML = `<a class="dropdown-item" href="#" data-year="${board.id}">${board.name}</a>`;
+            yearSelectorMenu.appendChild(item);
         });
+        yearSelectorMenu.innerHTML += `<li><hr class="dropdown-divider"></li>`;
+        yearSelectorMenu.innerHTML += `<li><a class="dropdown-item" href="#" id="add-year-option">Adicionar Novo Ano...</a></li>`;
     };
 
     const renderBoard = (searchTerm = "") => {
-        const board = workspace.boards.find(b => b.id === currentBoardId);
+        const board = workspace.boards.find(b => b.id === currentYear);
         if (!board) return;
-
-        boardTitle.textContent = board.name;
         boardContent.innerHTML = '';
         const lowerCaseSearchTerm = searchTerm.toLowerCase();
-
         board.lists.forEach(list => {
             const listWrapper = document.createElement('div');
             listWrapper.className = 'list-wrapper';
             listWrapper.dataset.listId = list.id;
             const listElement = document.createElement('div');
             listElement.className = 'list';
-            const filteredCards = list.cards.filter(card => 
-                card.patientName.toLowerCase().includes(lowerCaseSearchTerm) ||
-                card.originalProfessional.toLowerCase().includes(lowerCaseSearchTerm)
-            );
+            const filteredPatients = list.patients.filter(p => p.name.toLowerCase().includes(lowerCaseSearchTerm));
             
             const listHeader = document.createElement('div');
             listHeader.className = 'list-header d-flex justify-content-between align-items-center';
-            listHeader.innerHTML = `
-                <span>${list.title} (${filteredCards.length})</span>
-                <button class="btn btn-sm btn-outline-danger border-0 delete-list-btn">
-                    <i class="bi bi-trash"></i>
-                </button>
-            `;
+            listHeader.innerHTML = `<span>${list.title} (${filteredPatients.length})</span><button class="btn btn-sm btn-outline-danger border-0 delete-list-btn"><i class="bi bi-trash"></i></button>`;
             listElement.appendChild(listHeader);
-
+            
             const cardsContainer = document.createElement('div');
             cardsContainer.className = 'cards-container';
             cardsContainer.dataset.listId = list.id;
-
-            filteredCards.forEach(card => {
+            filteredPatients.forEach(patient => {
                 const cardElement = document.createElement('div');
-                cardElement.className = 'card bg-dark text-white mb-2 card-reposicao';
-                cardElement.dataset.cardId = card.id;
-                const originalDateFomatted = new Date(card.originalDate + 'T00:00:00').toLocaleDateString('pt-BR');
-
-                const completedMinutes = card.completedFractions.reduce((sum, fraction) => sum + fraction.duration, 0);
-                const progressPercentage = card.totalDuration > 0 ? (completedMinutes / card.totalDuration) * 100 : 0;
-
-                cardElement.innerHTML = `
-                    <div class="card-body p-2">
-                        <h6 class="card-title mb-1">${card.patientName}</h6>
-                        <div class="card-info d-flex flex-column">
-                            <span><i class="bi bi-person"></i> ${card.originalProfessional}</span>
-                            <span><i class="bi bi-calendar-event"></i> Orig: ${originalDateFomatted}</span>
-                        </div>
-                        <div class="progress-container">
-                            <div class="card-progress-bar" style="width: ${progressPercentage}%">${Math.round(progressPercentage)}%</div>
-                        </div>
-                    </div>`;
+                cardElement.className = 'card bg-white text-dark mb-2 card-paciente';
+                cardElement.dataset.patientId = patient.id;
+                const pendingReplacements = patient.replacements.filter(r => {
+                    const completed = r.completedFractions.reduce((sum, f) => sum + f.duration, 0);
+                    return completed < r.totalDuration;
+                }).length;
+                cardElement.innerHTML = `<div class="card-body p-2"><h6 class="card-title mb-1">${patient.name}</h6><div class="card-info d-flex flex-column"><span><i class="bi bi-person-check"></i> ${patient.mainProfessional || "N/A"}</span><span class="${pendingReplacements > 0 ? 'text-warning' : 'text-success'}"><i class="bi bi-${pendingReplacements > 0 ? 'hourglass-split' : 'check-circle-fill'}"></i> ${pendingReplacements} reposiç${pendingReplacements === 1 ? 'ão' : 'ões'} pendente${pendingReplacements === 1 ? '' : 's'}</span></div></div>`;
                 cardsContainer.appendChild(cardElement);
             });
             listElement.appendChild(cardsContainer);
-
             const footer = document.createElement('div');
             footer.className = 'list-footer';
-            footer.innerHTML = `<button class="btn btn-sm btn-secondary w-100 add-card-btn" data-list-id="${list.id}">Nova Solicitação +</button>`;
+            footer.innerHTML = `<button class="btn btn-sm btn-secondary w-100 add-patient-btn" data-list-id="${list.id}">Novo Paciente +</button>`;
             listElement.appendChild(footer);
-
             listWrapper.appendChild(listElement);
             boardContent.appendChild(listWrapper);
         });
-        
         const addListWrapper = document.createElement('div');
         addListWrapper.className = 'list-wrapper';
-        addListWrapper.innerHTML = `<button id="add-list-btn" class="btn btn-secondary w-100">Adicionar coluna +</button>`;
+        addListWrapper.innerHTML = `<button id="add-list-btn" class="btn btn-light w-100">Adicionar coluna +</button>`;
         boardContent.appendChild(addListWrapper);
-
         initSortable();
     };
-
-    const initSortable = () => {
-        const boardToSort = workspace.boards.find(b => b.id === currentBoardId);
-        if (!boardToSort) return;
-
-        new Sortable(boardContent, {
-            animation: 150,
-            handle: '.list-header',
-            filter: '.list-wrapper:has(#add-list-btn)',
-            onEnd: (evt) => {
-                const movedList = boardToSort.lists.splice(evt.oldIndex, 1)[0];
-                boardToSort.lists.splice(evt.newIndex, 0, movedList);
-            }
-        });
-
-        document.querySelectorAll('#board-content .cards-container').forEach(container => {
-            new Sortable(container, {
-                group: 'shared-cards',
-                animation: 150,
-                onEnd: (evt) => {
-                    const cardId = parseInt(evt.item.dataset.cardId);
-                    const toListId = parseInt(evt.to.dataset.listId);
-                    const toList = boardToSort.lists.find(l => l.id === toListId);
-
-                    let movedCard;
-                    for(const list of boardToSort.lists) {
-                        movedCard = list.cards.find(c => c.id === cardId);
-                        if(movedCard) break;
-                    }
-
-                    const completedMinutes = movedCard.completedFractions.reduce((sum, fraction) => sum + fraction.duration, 0);
-                    
-                    if (toList.title.toLowerCase().startsWith('concluída') && completedMinutes < movedCard.totalDuration) {
-                        alert('Uma reposição só pode ser movida para "Concluídas" quando atingir 100% do tempo.');
-                        renderBoard(searchBar.value);
-                        return;
-                    }
-                    
-                    const fromListId = parseInt(evt.from.dataset.listId);
-                    const fromList = boardToSort.lists.find(l => l.id === fromListId);
-                    const cardIndex = fromList.cards.findIndex(c => c.id === cardId);
-                    const cardToMove = fromList.cards.splice(cardIndex, 1)[0];
-                    toList.cards.splice(evt.newIndex, 0, cardToMove);
-                    
-                    renderBoard(searchBar.value);
+    
+    const renderPatientDetails = () => {
+        const board = workspace.boards.find(b => b.id === currentYear);
+        if (!board) return;
+        let patientData;
+        for (const list of board.lists) {
+            patientData = list.patients.find(p => p.id === selectedPatientId);
+            if (patientData) break;
+        }
+        if (!patientData) return;
+        patientNameTitle.textContent = `Painel de: ${patientData.name}`;
+        document.getElementById('patientInfoPanel').innerHTML = `<div class="d-flex justify-content-between align-items-start"><div><p class="mb-1"><strong>Contato:</strong> ${patientData.contact || "Não informado"}</p><p class="mb-0"><strong>Profissional Principal:</strong> ${patientData.mainProfessional || "Não informado"}</p></div><button class="btn btn-sm btn-outline-secondary edit-patient-btn"><i class="bi bi-pencil"></i></button></div>`;
+        const replacementsList = document.getElementById('replacements-list');
+        replacementsList.innerHTML = '';
+        if (patientData.replacements.length === 0) {
+            replacementsList.innerHTML = `<div class="empty-list-message">Nenhuma reposição registrada para este paciente.</div>`;
+        } else {
+            patientData.replacements.forEach(repl => {
+                const completedMinutes = repl.completedFractions.reduce((sum, f) => sum + f.duration, 0);
+                const progressPercentage = repl.totalDuration > 0 ? (completedMinutes / repl.totalDuration) * 100 : 0;
+                const isCompleted = completedMinutes >= repl.totalDuration;
+                const originalDateFormatted = new Date(repl.originalDate + 'T00:00:00').toLocaleDateString('pt-BR');
+                const collapseId = `replacement-collapse-${repl.id}`;
+                const item = document.createElement('div');
+                item.className = 'replacement-item';
+                let fractionsHistoryHTML = '<ul class="fractions-history">';
+                if (repl.completedFractions.length === 0) {
+                    fractionsHistoryHTML += '<li>Nenhuma fração registrada.</li>';
+                } else {
+                    repl.completedFractions.forEach(fraction => {
+                        const fractionDateFormatted = new Date(fraction.date + 'T00:00:00').toLocaleDateString('pt-BR');
+                        fractionsHistoryHTML += `<li><span><i class="bi bi-check-circle text-success"></i> ${fraction.duration} min em ${fractionDateFormatted}</span><span>${fraction.professional}</span></li>`;
+                    });
                 }
+                fractionsHistoryHTML += '</ul>';
+                item.innerHTML = `<a class="replacement-summary" data-bs-toggle="collapse" href="#${collapseId}" role="button"><div class="d-flex justify-content-between align-items-start"><div><div class="replacement-summary-header">Sessão de ${originalDateFormatted}</div><div class="replacement-summary-details">com ${repl.originalProfessional} (${repl.totalDuration} min)</div></div></div><div class="progress-container"><div class="progress-bar ${isCompleted ? 'bg-success' : ''}" style="width: ${progressPercentage}%">${Math.round(progressPercentage)}%</div></div></a><div class="collapse replacement-details-body" id="${collapseId}"><h6>Histórico de Frações</h6>${fractionsHistoryHTML}<div class="replacement-item-actions"><button class="btn btn-sm btn-outline-primary register-fraction-btn" data-replacement-id="${repl.id}" ${isCompleted ? 'disabled' : ''}>Registrar Fração</button></div></div>`;
+                replacementsList.appendChild(item);
             });
+        }
+    };
+    
+    const initSortable = () => {
+        const boardToSort = workspace.boards.find(b => b.id === currentYear);
+        if (!boardToSort) return;
+        new Sortable(boardContent, { animation: 150, handle: '.list-header', filter: '.list-wrapper:has(#add-list-btn)', onEnd: (evt) => { const movedList = boardToSort.lists.splice(evt.oldIndex, 1)[0]; boardToSort.lists.splice(evt.newIndex, 0, movedList); } });
+        document.querySelectorAll('#board-content .cards-container').forEach(container => {
+            new Sortable(container, { group: 'shared-patients', animation: 150, onEnd: (evt) => { const patientId = parseInt(evt.item.dataset.patientId); const toListId = parseInt(evt.to.dataset.listId); const toList = boardToSort.lists.find(l => l.id === toListId); let movedPatient; for (const list of boardToSort.lists) { movedPatient = list.patients.find(p => p.id === patientId); if (movedPatient) break; } const hasPendingReplacements = movedPatient.replacements.some(r => { const completed = r.completedFractions.reduce((sum, f) => sum + f.duration, 0); return completed < r.totalDuration; }); if (toList.title.toLowerCase().includes('sem pendências') && hasPendingReplacements) { alert('Um paciente só pode ser movido para "Sem Pendências" quando todas as suas reposições estiverem 100% concluídas.'); renderBoard(searchBar.value); return; } const fromListId = parseInt(evt.from.dataset.listId); const fromList = boardToSort.lists.find(l => l.id === fromListId); const patientIndex = fromList.patients.findIndex(p => p.id === patientId); const patientToMove = fromList.patients.splice(patientIndex, 1)[0]; toList.patients.splice(evt.newIndex, 0, patientToMove); renderBoard(searchBar.value); } });
         });
     };
 
     // ---- EVENT LISTENERS ---- //
-
     loginForm.addEventListener('submit', e => {
         e.preventDefault();
-        renderWorkspace();
-        showScreen('workspace-screen');
+        initializeApp();
     });
 
-    logoutBtn.addEventListener('click', () => showScreen('login-screen'));
-    backToWorkspaceBtn.addEventListener('click', () => showScreen('workspace-screen'));
-    searchBar.addEventListener('input', e => renderBoard(e.target.value));
+    logoutBtn.addEventListener('click', () => {
+        showScreen('login-screen');
+    });
 
-    boardsContainer.addEventListener('click', e => {
-        const boardCard = e.target.closest('.board-card');
-        if (boardCard) {
-            currentBoardId = parseInt(boardCard.dataset.boardId);
+    searchBar.addEventListener('input', e => {
+        renderBoard(e.target.value);
+    });
+
+    yearSelectorMenu.addEventListener('click', e => {
+        e.preventDefault();
+        const target = e.target;
+        if (target.matches('.dropdown-item[data-year]')) {
+            const year = parseInt(target.dataset.year);
+            if (year !== currentYear) { currentYear = year; renderYearSelector(); renderBoard(); }
+        } else if (target.matches('#add-year-option')) {
+            const latestYear = Math.max(...workspace.boards.map(b => b.id));
+            const nextYear = latestYear > 0 ? latestYear + 1 : new Date().getFullYear() + 1;
+            const digits = String(nextYear).split('');
+            const digitSelectors = [document.getElementById('digit1'), document.getElementById('digit2'), document.getElementById('digit3'), document.getElementById('digit4')];
+            digitSelectors[0].innerHTML = `<option>2</option>`;
+            digitSelectors[1].innerHTML = `<option>0</option>`;
+            [digitSelectors[2], digitSelectors[3]].forEach(sel => { sel.innerHTML = ''; for(let i = 0; i <= 9; i++) sel.innerHTML += `<option>${i}</option>`; });
+            if(digits.length === 4) {
+                digitSelectors[0].value = digits[0];
+                digitSelectors[1].value = digits[1];
+                digitSelectors[2].value = digits[2];
+                digitSelectors[3].value = digits[3];
+            }
+            addYearModal.show();
+        }
+    });
+
+    addYearForm.addEventListener('submit', e => {
+        e.preventDefault();
+        const year = [document.getElementById('digit1').value, document.getElementById('digit2').value, document.getElementById('digit3').value, document.getElementById('digit4').value].join('');
+        const newYear = parseInt(year);
+        if (workspace.boards.find(b => b.id === newYear)) { alert(`O board para o ano ${newYear} já existe.`); return; }
+        workspace.boards.push({ id: newYear, name: String(newYear), lists: [{ id: Date.now() + 1, title: "Pacientes com Pendências", patients: [] },{ id: Date.now() + 2, title: "Pacientes sem Pendências", patients: [] }]});
+        currentYear = newYear;
+        renderYearSelector();
+        renderBoard();
+        addYearModal.hide();
+    });
+
+    boardContent.addEventListener('dblclick', e => {
+        const headerSpan = e.target.closest('.list-header span');
+        if (!headerSpan) return;
+        const listWrapper = e.target.closest('.list-wrapper');
+        const listId = parseInt(listWrapper.dataset.listId);
+        const originalTitle = headerSpan.textContent.replace(/\s\(\d+\)$/, '').trim();
+        const input = document.createElement('input');
+        input.type = 'text';
+        input.className = 'list-header-input';
+        input.value = originalTitle;
+        headerSpan.style.display = 'none';
+        headerSpan.parentElement.insertBefore(input, headerSpan);
+        input.focus();
+        input.select();
+        const saveChanges = () => {
+            const newTitle = input.value.trim();
+            if (newTitle && newTitle !== originalTitle) {
+                const board = workspace.boards.find(b => b.id === currentYear);
+                const list = board.lists.find(l => l.id === listId);
+                if (list) { list.title = newTitle; }
+            }
             renderBoard();
-            showScreen('board-screen');
-        }
+        };
+        input.addEventListener('blur', saveChanges);
+        input.addEventListener('keydown', (e) => {
+            if (e.key === 'Enter') saveChanges();
+            else if (e.key === 'Escape') renderBoard();
+        });
     });
-
-    addBoardBtn.addEventListener('click', () => {
-        const name = prompt("Digite o nome do novo board (ex: Reposições 2026):");
-        if (name && name.trim()) {
-            workspace.boards.push({ id: Date.now(), name: name.trim(), lists: [
-                { id: Date.now() + 1, title: "Solicitações Pendentes", cards: [] },
-                { id: Date.now() + 2, title: "Agendadas", cards: [] },
-                { id: Date.now() + 3, title: "Concluídas", cards: [] }
-            ]});
-            renderWorkspace();
-        }
-    });
-
+    
     boardContent.addEventListener('click', e => {
-        const addCardBtn = e.target.closest('.add-card-btn');
-        if (addCardBtn) {
-            currentListIdForNewCard = parseInt(addCardBtn.dataset.listId);
-            createCardForm.reset();
-            createCardModal.show();
-            return;
-        }
-
-        const cardElement = e.target.closest('.card-reposicao[data-card-id]');
-        if (cardElement) {
-            selectedCardId = parseInt(cardElement.dataset.cardId);
-            const board = workspace.boards.find(b => b.id === currentBoardId);
-            let cardData;
-            for (const list of board.lists) {
-                cardData = list.cards.find(c => c.id === selectedCardId);
-                if (cardData) break;
-            }
-            if (cardData) {
-                cardDetailsTitle.textContent = `Reposição: ${cardData.patientName}`;
-                
-                const originalDateFomatted = new Date(cardData.originalDate + 'T00:00:00').toLocaleDateString('pt-BR');
-                document.getElementById('originalSessionDetails').innerHTML = `
-                    <p class="mb-1"><strong>Profissional Original:</strong> ${cardData.originalProfessional}</p>
-                    <p class="mb-1"><strong>Data Original:</strong> ${originalDateFomatted}</p>
-                    <p class="mb-0"><strong>Tipo:</strong> ${cardData.sessionType || "Não informado"}</p>`;
-
-                const completedMinutes = cardData.completedFractions.reduce((sum, fraction) => sum + fraction.duration, 0);
-                const progressPercentage = cardData.totalDuration > 0 ? (completedMinutes / cardData.totalDuration) * 100 : 0;
-                const progressBar = document.getElementById('cardProgressBar');
-                progressBar.style.width = `${progressPercentage}%`;
-                progressBar.textContent = `${Math.round(progressPercentage)}%`;
-                document.getElementById('progressStatus').textContent = `${completedMinutes} de ${cardData.totalDuration} min concluídos`;
-
-                const fractionsLog = document.getElementById('fractionsLog');
-                fractionsLog.innerHTML = '';
-                if (cardData.completedFractions.length === 0) {
-                    fractionsLog.innerHTML = `<li class="list-group-item empty-log">Nenhuma fração registrada.</li>`;
-                } else {
-                    cardData.completedFractions.forEach(fraction => {
-                        const item = document.createElement('li');
-                        item.className = 'list-group-item d-flex justify-content-between align-items-center';
-                        const fractionDateFormatted = new Date(fraction.date + 'T00:00:00').toLocaleDateString('pt-BR');
-                        item.innerHTML = `
-                            <span>
-                                <i class="bi bi-check-circle-fill text-success"></i>
-                                <strong>${fraction.duration} min</strong> em ${fractionDateFormatted}
-                                <small class="text-body-secondary d-block">com ${fraction.professional}</small>
-                            </span>`;
-                        fractionsLog.appendChild(item);
-                    });
-                }
-                cardDetailsModal.show();
-            }
-            return;
-        }
+        const addPatientBtn = e.target.closest('.add-patient-btn');
+        if (addPatientBtn) { currentListIdForNewPatient = parseInt(addPatientBtn.dataset.listId); createPatientForm.reset(); createPatientModal.show(); return; }
         
-        if (e.target.matches('#add-list-btn')) {
-            const title = prompt("Digite o título da nova coluna:");
-            const board = workspace.boards.find(b => b.id === currentBoardId);
-            if (title && title.trim() && board) {
-                board.lists.push({ id: Date.now(), title: title.trim(), cards: [] });
-                renderBoard();
-            }
-            return;
-        }
-
+        const cardElement = e.target.closest('.card-paciente[data-patient-id]');
+        if (cardElement) { selectedPatientId = parseInt(cardElement.dataset.patientId); renderPatientDetails(); patientDetailsModal.show(); return; }
+        
+        if (e.target.matches('#add-list-btn')) { const title = prompt("Digite o título da nova coluna:"); const board = workspace.boards.find(b => b.id === currentYear); if (title && title.trim() && board) { board.lists.push({ id: Date.now(), title: title.trim(), patients: [] }); renderBoard(); } return; }
+        
         const deleteListBtn = e.target.closest('.delete-list-btn');
-        if (deleteListBtn) {
-            const listWrapper = deleteListBtn.closest('.list-wrapper');
-            const listIdToDelete = parseInt(listWrapper.dataset.listId);
-            const board = workspace.boards.find(b => b.id === currentBoardId);
-            const listToDelete = board.lists.find(l => l.id === listIdToDelete);
-            
-            if (listToDelete && confirm(`Tem certeza que deseja excluir a coluna "${listToDelete.title}" e todos os seus cards?`)) {
-                board.lists = board.lists.filter(list => list.id !== listIdToDelete);
-                renderBoard();
+        if (deleteListBtn) { const listWrapper = deleteListBtn.closest('.list-wrapper'); const listIdToDelete = parseInt(listWrapper.dataset.listId); const board = workspace.boards.find(b => b.id === currentYear); const listToDelete = board.lists.find(l => l.id === listIdToDelete); if (listToDelete && confirm(`Tem certeza que deseja excluir a coluna "${listToDelete.title}" e todos os seus pacientes?`)) { board.lists = board.lists.filter(list => list.id !== listIdToDelete); renderBoard(); } }
+    });
+
+    patientDetailsModalElement.addEventListener('click', e => {
+        const registerBtn = e.target.closest('.register-fraction-btn');
+        if (registerBtn) {
+            selectedReplacementId = parseInt(registerBtn.dataset.replacementId);
+            const board = workspace.boards.find(b => b.id === currentYear);
+            let patient, replacement;
+            for (const list of board.lists) { patient = list.patients.find(p => p.id === selectedPatientId); if (patient) { replacement = patient.replacements.find(r => r.id === selectedReplacementId); if (replacement) break; } }
+            if (replacement) {
+                const fractionTypeSelect = document.getElementById('fraction_type');
+                fractionTypeSelect.innerHTML = '';
+                if (replacement.completedFractions.length === 0) {
+                    fractionTypeSelect.innerHTML += `<option value="10">Parcial (10 min)</option>`;
+                    fractionTypeSelect.innerHTML += `<option value="50">Completa (50 min)</option>`;
+                } else {
+                    fractionTypeSelect.innerHTML += `<option value="10">Parcial (10 min)</option>`;
+                }
+                document.getElementById('fraction_date').valueAsDate = new Date();
+                document.getElementById('fraction_professional').value = patient.mainProfessional || '';
+                registerFractionModal.show();
+            }
+        }
+
+        const editBtn = e.target.closest('.edit-patient-btn');
+        if (editBtn) {
+            editingPatientId = selectedPatientId;
+            const board = workspace.boards.find(b => b.id === currentYear);
+            let patientData;
+            for (const list of board.lists) { patientData = list.patients.find(p => p.id === editingPatientId); if (patientData) break; }
+            if (patientData) {
+                createPatientModalTitle.textContent = 'Editar Paciente';
+                createPatientSubmitBtn.textContent = 'Salvar Alterações';
+                document.getElementById('patientName').value = patientData.name;
+                document.getElementById('patientContact').value = patientData.contact || '';
+                document.getElementById('mainProfessional').value = patientData.mainProfessional || '';
+                patientDetailsModal.hide();
+                createPatientModal.show();
             }
         }
     });
 
-    createCardForm.addEventListener('submit', e => {
+    createPatientForm.addEventListener('submit', e => {
         e.preventDefault();
-        const newCardData = {
-            id: Date.now(),
-            patientName: document.getElementById('patientName').value.trim(),
-            originalProfessional: document.getElementById('originalProfessional').value.trim(),
-            originalDate: document.getElementById('originalDate').value,
-            totalDuration: parseInt(document.getElementById('totalDuration').value) || 0,
-            sessionType: document.getElementById('sessionType').value.trim(),
-            notes: document.getElementById('notes').value.trim(),
-            completedFractions: []
-        };
-        const board = workspace.boards.find(b => b.id === currentBoardId);
-        const list = board.lists.find(l => l.id === currentListIdForNewCard);
-        list.cards.push(newCardData);
+        const board = workspace.boards.find(b => b.id === currentYear);
+        if (!board) return;
+        if (editingPatientId) {
+            let patientToUpdate;
+            for (const list of board.lists) { patientToUpdate = list.patients.find(p => p.id === editingPatientId); if (patientToUpdate) break; }
+            if (patientToUpdate) {
+                patientToUpdate.name = document.getElementById('patientName').value.trim();
+                patientToUpdate.contact = document.getElementById('patientContact').value.trim();
+                patientToUpdate.mainProfessional = document.getElementById('mainProfessional').value.trim();
+            }
+        } else {
+            const newPatientData = { id: Date.now(), name: document.getElementById('patientName').value.trim(), contact: document.getElementById('patientContact').value.trim(), mainProfessional: document.getElementById('mainProfessional').value.trim(), replacements: [] };
+            const list = board.lists.find(l => l.id === currentListIdForNewPatient);
+            list.patients.push(newPatientData);
+        }
         renderBoard();
-        createCardModal.hide();
+        createPatientModal.hide();
+        editingPatientId = null;
+        createPatientModalTitle.textContent = 'Criar Card de Paciente';
+        createPatientSubmitBtn.textContent = 'Criar Paciente';
+        createPatientForm.reset();
     });
 
-    addFractionForm.addEventListener('submit', e => {
+    showAddReplacementModalBtn.addEventListener('click', () => {
+        addReplacementForm.reset();
+        addReplacementModal.show();
+    });
+
+    addReplacementForm.addEventListener('submit', e => {
         e.preventDefault();
-        if(!selectedCardId) return;
-
-        const newFraction = {
-            date: document.getElementById('fractionDate').value,
-            duration: parseInt(document.getElementById('fractionDuration').value) || 0,
-            professional: document.getElementById('fractionProfessional').value.trim()
-        };
-
-        if (newFraction.duration <= 0 || !newFraction.date || !newFraction.professional) {
-            alert("Por favor, preencha todos os campos da fração.");
-            return;
-        }
-
-        const board = workspace.boards.find(b => b.id === currentBoardId);
-        let cardToUpdate;
-        for (const list of board.lists) {
-            cardToUpdate = list.cards.find(c => c.id === selectedCardId);
-            if (cardToUpdate) break;
-        }
-
-        const completedMinutes = cardToUpdate.completedFractions.reduce((sum, fraction) => sum + fraction.duration, 0);
-        if ((completedMinutes + newFraction.duration) > cardToUpdate.totalDuration) {
-            alert("A soma das frações não pode ultrapassar a duração total da sessão.");
-            return;
-        }
-        
-        cardToUpdate.completedFractions.push(newFraction);
-        addFractionForm.reset();
-        cardDetailsModal.hide();
+        if(!selectedPatientId) return;
+        const totalDuration = 50;
+        const newReplacement = { id: Date.now(), originalProfessional: document.getElementById('repl_originalProfessional').value.trim(), originalDate: document.getElementById('repl_originalDate').value, totalDuration: totalDuration, notes: document.getElementById('repl_notes').value.trim(), completedFractions: [] };
+        const board = workspace.boards.find(b => b.id === currentYear);
+        let patientData;
+        for (const list of board.lists) { patientData = list.patients.find(p => p.id === selectedPatientId); if (patientData) break; }
+        patientData.replacements.push(newReplacement);
+        renderPatientDetails();
+        renderBoard();
+        addReplacementModal.hide();
+    });
+    
+    registerFractionForm.addEventListener('submit', e => {
+        e.preventDefault();
+        if (!selectedPatientId || !selectedReplacementId) return;
+        const durationToAdd = parseInt(document.getElementById('fraction_type').value);
+        const newFraction = { date: document.getElementById('fraction_date').value, professional: document.getElementById('fraction_professional').value.trim(), duration: durationToAdd };
+        if (!newFraction.date || !newFraction.professional) { alert("Por favor, preencha a data e o profissional."); return; }
+        const board = workspace.boards.find(b => b.id === currentYear);
+        let patientData;
+        for (const list of board.lists) { patientData = list.patients.find(p => p.id === selectedPatientId); if (patientData) break; }
+        const replacementToUpdate = patientData.replacements.find(r => r.id === selectedReplacementId);
+        const completedMinutes = replacementToUpdate.completedFractions.reduce((sum, f) => sum + f.duration, 0);
+        if ((completedMinutes + durationToAdd) > replacementToUpdate.totalDuration) { alert("A soma das frações não pode ultrapassar a duração total da sessão."); return; }
+        replacementToUpdate.completedFractions.push(newFraction);
+        registerFractionModal.hide();
+        renderPatientDetails();
         renderBoard();
     });
 
-    deleteCardBtn.addEventListener('click', () => {
-        if (confirm("Tem certeza que deseja excluir esta solicitação?")) {
-            if (selectedCardId) {
-                const board = workspace.boards.find(b => b.id === currentBoardId);
-                board.lists.forEach(list => {
-                    list.cards = list.cards.filter(card => card.id !== selectedCardId);
-                });
+    deletePatientBtn.addEventListener('click', () => {
+        if (confirm("Tem certeza que deseja excluir este paciente e todo o seu histórico de reposições?")) {
+            if (selectedPatientId) {
+                const board = workspace.boards.find(b => b.id === currentYear);
+                board.lists.forEach(list => { list.patients = list.patients.filter(p => p.id !== selectedPatientId); });
                 renderBoard();
-                cardDetailsModal.hide();
-                selectedCardId = null;
+                patientDetailsModal.hide();
+                selectedPatientId = null;
             }
         }
     });

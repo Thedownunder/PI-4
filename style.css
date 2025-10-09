@@ -1,72 +1,164 @@
 /* Estilos Gerais */
-body { background-color: #212529; color: #f8f9fa; min-height: 100vh; }
-body.login-view { display: flex; align-items: center; justify-content: center; }
-.screen.hidden { display: none !important; }
-.user-icon { font-size: 6rem; color: #6c757d; }
-
-/* TELA DE WORKSPACE */
-#boards-container .board-card {
-    cursor: pointer;
-    transition: all 0.2s ease-in-out;
-    border-left: 4px solid #0d6efd;
+body {
+    background-color: #f8f9fa;
+    color: #212529;
+    min-height: 100vh;
 }
-#boards-container .board-card:hover {
-    transform: translateY(-5px);
-    background-color: #343a40 !important;
-    border-color: #0d6efd;
+.screen.hidden {
+    display: none !important;
+}
+
+/* Tela de Login */
+#login-screen {
+    width: 100%;
+    max-width: none;
+    background-color: #ffffff;
+}
+.login-form-container {
+    width: 100%;
+    max-width: 400px;
+}
+.login-image-container {
+    background-image: url('clinica-fundamento-recepcao.jpg');
+    background-size: cover;
+    background-position: center;
+}
+.user-icon {
+    font-size: 4rem;
+    color: #6c757d;
 }
 
 /* Estrutura do Board */
-#board-screen { display: flex; flex-direction: column; height: 100vh; width: 100%; overflow: hidden; }
-.app-header { background-color: rgba(0, 0, 0, 0.2); flex-shrink: 0; }
-.board { flex-grow: 1; overflow-x: auto; overflow-y: hidden; }
-.list-wrapper { flex-shrink: 0; width: 300px; margin-right: 1rem; }
-.list { background-color: #1a1d21; border-radius: 0.5rem; max-height: calc(100vh - 120px); display: flex; flex-direction: column; }
-.list-header { padding: 0.75rem 1rem; font-weight: bold; cursor: grab; }
-.cards-container { flex-grow: 1; overflow-y: auto; padding: 0 0.75rem; }
-.list-footer { padding: 0.75rem; }
+#board-screen {
+    display: flex;
+    flex-direction: column;
+    height: 100vh;
+    width: 100%;
+    overflow: hidden;
+}
+.app-header {
+    background-color: #ffffff;
+    border-bottom: 1px solid #dee2e6;
+    flex-shrink: 0;
+}
+.board {
+    flex-grow: 1;
+    overflow-x: auto;
+    overflow-y: hidden;
+}
+.list-wrapper {
+    flex-shrink: 0;
+    width: 300px;
+    margin-right: 1rem;
+}
+.list {
+    background-color: #eff2f5;
+    border-radius: 0.5rem;
+    max-height: calc(100vh - 120px);
+    display: flex;
+    flex-direction: column;
+}
+.list-header {
+    padding: 0.75rem 1rem;
+    font-weight: bold;
+    cursor: grab;
+}
+.cards-container {
+    flex-grow: 1;
+    overflow-y: auto;
+    padding: 0 0.75rem;
+}
+.list-footer {
+    padding: 0.75rem;
+}
 
-/* Card de Reposição */
-.card-reposicao {
+/* Card de Paciente */
+.card-paciente {
     cursor: pointer;
     transition: background-color 0.2s;
     border-left: 4px solid #6c757d;
+    background-color: #ffffff;
 }
-.card-reposicao .card-body {
-    padding-bottom: 25px !important; /* Espaço extra no final do card para a barra de progresso */
-    position: relative;
+.card-paciente:hover {
+    background-color: #f1f3f5;
 }
-.card-reposicao:hover { background-color: #495057; }
-.card-reposicao .card-title { font-weight: bold; }
-.card-reposicao .card-info { font-size: 0.85rem; opacity: 0.8; }
+.card-paciente .card-title {
+    font-weight: bold;
+}
+.card-paciente .card-info {
+    font-size: 0.85rem;
+    opacity: 0.8;
+}
 
-/* SortableJS & Scrollbar (sem alterações) */
-.sortable-ghost { opacity: 0.4; background-color: #0d6efd; border-radius: 0.375rem; }
-.sortable-drag { opacity: 0.9 !important; transform: rotate(2deg); }
-::-webkit-scrollbar { width: 8px; height: 12px; }
-::-webkit-scrollbar-thumb { background: #555; border-radius: 4px; }
-::-webkit-scrollbar-track { background: rgba(0,0,0,0.1); }
-
-
-/* ======================================================= */
-/* NOVOS ESTILOS PARA AS FUNCIONALIDADES DE REPOSIÇÃO      */
-/* ======================================================= */
-
-/* --- Barra de Progresso no Card --- */
-.progress-container {
-    position: absolute;
-    bottom: 8px; /* Posiciona no espaço extra que criamos no .card-body */
-    left: 8px;
-    right: 8px;
+/* SortableJS & Scrollbar */
+.sortable-ghost {
+    opacity: 0.4;
+    background-color: #0d6efd;
+    border-radius: 0.375rem;
+}
+.sortable-drag {
+    opacity: 0.9 !important;
+    transform: rotate(2deg);
+}
+::-webkit-scrollbar {
+    width: 8px;
     height: 12px;
-    background-color: rgba(255, 255, 255, 0.1);
+}
+::-webkit-scrollbar-thumb {
+    background: #ced4da;
+    border-radius: 4px;
+}
+::-webkit-scrollbar-track {
+    background: #f1f1f1;
+}
+
+/* Estilos para o Painel do Paciente e Lista de Reposições */
+.replacements-list-container {
+    max-height: 65vh;
+    overflow-y: auto;
+    padding: 0.5rem;
+    background-color: #e9ecef;
+    border-radius: 0.375rem;
+}
+.replacement-item {
+    background-color: #ffffff;
+    border-radius: 0.375rem;
+    margin-bottom: 0.75rem;
+    border: 1px solid #dee2e6;
+    overflow: hidden;
+}
+.replacement-summary {
+    display: block;
+    padding: 1rem;
+    text-decoration: none;
+    color: inherit;
+    cursor: pointer;
+    position: relative;
+    padding-bottom: 30px;
+}
+.replacement-summary:hover {
+    background-color: #f8f9fa;
+}
+.replacement-summary-header {
+    font-weight: 500;
+}
+.replacement-summary-details {
+    font-size: 0.85rem;
+    color: #6c757d;
+}
+.replacement-summary .progress-container {
+    position: absolute;
+    bottom: 8px;
+    left: 1rem;
+    right: 1rem;
+    height: 12px;
+    background-color: #e9ecef;
     border-radius: 6px;
     overflow: hidden;
 }
-
-.card-progress-bar {
+.replacement-summary .progress-bar {
     height: 100%;
-    background-color: #0d6efd; /* Azul primário do Bootstrap */
+    background-color: #0d6efd;
     transition: width 0.4s ease-in-out;
     display: flex;
     align-items: center;
@@ -74,23 +166,69 @@ body.login-view { display: flex; align-items: center; justify-content: center; }
     font-size: 0.6rem;
     color: white;
 }
-
-/* --- Novas Seções no Modal de Detalhes --- */
+.replacement-details-body {
+    padding: 1rem;
+    background-color: #f1f3f5;
+    border-top: 1px solid #dee2e6;
+    font-size: 0.9rem;
+}
+.replacement-details-body h6 {
+    font-size: 0.95rem;
+    font-weight: bold;
+    margin-bottom: 0.75rem;
+    color: #495047;
+}
+.fractions-history {
+    list-style: none;
+    padding: 0;
+    margin-bottom: 1rem;
+}
+.fractions-history li {
+    display: flex;
+    justify-content: space-between;
+    padding: 0.5rem 0;
+    border-bottom: 1px solid #dee2e6;
+}
+.fractions-history li:last-child {
+    border-bottom: none;
+}
+.empty-list-message {
+    text-align: center;
+    padding: 2rem;
+    color: #6c757d;
+    font-style: italic;
+}
 .details-section {
-    background-color: rgba(255, 255, 255, 0.05);
+    background-color: #f1f3f5;
     padding: 1rem;
     border-radius: 0.375rem;
     margin-bottom: 1rem;
 }
 
-#fractionsLog .list-group-item {
-    background-color: rgba(0, 0, 0, 0.2);
-    border-color: rgba(255, 255, 255, 0.1);
+/* Estilos para o Modal de Adicionar Ano */
+.year-selector-container {
+    padding: 1rem 0;
+}
+.year-digit-selector {
+    font-size: 2rem;
+    font-weight: bold;
+    text-align: center;
+    width: 70px;
 }
 
-#fractionsLog .empty-log {
-    color: #6c757d; /* Cor secundária do Bootstrap */
-    font-style: italic;
-    text-align: center;
-    padding: 1rem;
+/* ======================================================= */
+/* NOVO ESTILO PARA EDIÇÃO DE TÍTULO DA COLUNA             */
+/* ======================================================= */
+.list-header-input {
+    background-color: #ffffff;
+    border: 1px solid #0d6efd; /* Borda azul para indicar edição */
+    border-radius: 3px;
+    font-size: inherit;
+    font-weight: inherit;
+    color: inherit;
+    width: 100%;
+    padding: 0.1rem 0.2rem;
+}
+.list-header-input:focus {
+    outline: none;
 }
