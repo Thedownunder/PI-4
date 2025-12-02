@@ -1,2 +1,3 @@
-# PI-4
-Projeto Integrador IV - Ciência da computação, 8° semestre, CEUB
+VITE_SUPABASE_URL=https://hlzcnqxlxxjwhxmnkiff.supabase.co VITE_SUPABASE_ANON_KEY=eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImhsemNucXhseHhqd2h4bW5raWZmIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NjMwMzk2NjEsImV4cCI6MjA3ODYxNTY2MX0.hoCRtk7U25tGaUn4WpLF9Slb0yHFbkXO3mHBNN0YOr0
+
+.env.local
